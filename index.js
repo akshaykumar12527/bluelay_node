@@ -55,40 +55,47 @@ function read_keywords_and_sources(source_file) {
 async function crawl_google(params, proxies) {
   return new Promise((resolve, reject)=>{
     try {
-      tr.request({
-        url: "https://www.google.com/search",
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36",
-          Referer: "https://www.google.com/",
-          "Sec-Fetch-Site": "same-origin",
-          "Sec-Fetch-Mode": "navigate",
-          "Sec-Fetch-User": "?1",
-          "Sec-Fetch-Dest": "document",
-          "Accept-Encoding": "gzip, deflate",
-          "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
-        },
-        params: params,
-  
-      }, function(err, resp, body){
+      tr.newTorSession(function(err){
         if(err){
           reject(err);
         }else{
-          console.log(body)
-          const $ = cheerio.load(body);
-          const links_found = find_links($);
-
-          resolve(links_found);
+          tr.request({
+            url: "https://www.google.com/search",
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36",
+              Referer: "https://www.google.com/",
+              "Sec-Fetch-Site": "same-origin",
+              "Sec-Fetch-Mode": "navigate",
+              "Sec-Fetch-User": "?1",
+              "Sec-Fetch-Dest": "document",
+              "Accept-Encoding": "gzip, deflate",
+              "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
+            },
+            qs: params,
+    
+          }, function(err, resp, body){
+            if(err){
+              reject(err);
+            }else{
+              console.log(resp.body)
+              const $ = cheerio.load(body);
+              const links_found = find_links($);
+    
+              resolve(links_found);
+            }
+    
+          });
         }
-       
       });
      
+
     } catch (err) {
       console.log("some error", err);
       reject(err);
     }
-    
+
   })
-  
+
 }
 
 // #------------------------------------------------------------------------------#
@@ -101,7 +108,7 @@ function create_search_terms(keywords, sources) {
     sources.forEach((s) => {
       let t_ = {
         hl: "en",
-        as_q: null,
+       // as_q: null,
         as_epq: `${k}`,
         as_qdr: "all",
         as_sitesearch: `${s}`,
