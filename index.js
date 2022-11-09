@@ -73,6 +73,7 @@ async function crawl_google(params, proxies) {
         if(err){
           reject(err);
         }else{
+          console.log(body)
           const $ = cheerio.load(body);
           const links_found = find_links($);
 
