@@ -1,6 +1,7 @@
 const axios = require("axios");
 const fs = require("fs");
 const cheerio = require("cheerio");
+const tr = require('tor-request')
 
 // const proxies_file = 'proxies.conf'
 const sources_file = __dirname + "/sources.conf";
@@ -52,31 +53,41 @@ function read_keywords_and_sources(source_file) {
 // #------------------------------------------------------------------------------#
 
 async function crawl_google(params, proxies) {
-  try {
-    let resp = await axios.get("https://www.google.com/search", {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36",
-        Referer: "https://www.google.com/",
-        "Sec-Fetch-Site": "same-origin",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-User": "?1",
-        "Sec-Fetch-Dest": "document",
-        "Accept-Encoding": "gzip, deflate",
-        "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
-      },
-      params: params,
-      proxies: proxies,
-    });
+  return new Promise((resolve, reject)=>{
+    try {
+      tr.request({
+        url: "https://www.google.com/search",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36",
+          Referer: "https://www.google.com/",
+          "Sec-Fetch-Site": "same-origin",
+          "Sec-Fetch-Mode": "navigate",
+          "Sec-Fetch-User": "?1",
+          "Sec-Fetch-Dest": "document",
+          "Accept-Encoding": "gzip, deflate",
+          "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
+        },
+        params: params,
+  
+      }, function(err, resp, body){
+        if(err){
+          reject(err);
+        }else{
+          const $ = cheerio.load(body);
+          const links_found = find_links($);
 
-    const $ = cheerio.load(resp.data);
-    const links_found = find_links($);
-
-    return links_found;
-  } catch (err) {
-    console.log("some error", err);
-  }
-
-  return null;
+          resolve(links_found);
+        }
+       
+      });
+     
+    } catch (err) {
+      console.log("some error", err);
+      reject(err);
+    }
+    
+  })
+  
 }
 
 // #------------------------------------------------------------------------------#
@@ -145,15 +156,20 @@ var search_queries = create_search_terms(keywords, sources);
 
 // # Query Google, and print result:
 var results = [];
-(async () => {
-  results = await Promise.all(
-    search_queries.map((query_params) => {
-      var res_ = crawl_google(query_params, {});
-      return res_;
-    })
-  );
-//   console.log("Results for all keywords:");
-  results.forEach((result_list) => {
-    console.log(result_list.join('\n'));
-  });
-})();
+try{
+  (async () => {
+    results = await Promise.all(
+      search_queries.map(async(query_params) => {
+        var res_ = await crawl_google(query_params, {});
+        return res_;
+      })
+    );
+  //   console.log("Results for all keywords:");
+    results.forEach((result_list) => {
+      console.log(result_list.join('\n'));
+    });
+  })();
+}catch(err){
+  console.error("Error, failed to fetch result:");
+  console.error(err.stack);
+}
