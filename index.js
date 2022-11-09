@@ -2,6 +2,7 @@ const axios = require("axios");
 const fs = require("fs");
 const cheerio = require("cheerio");
 const tr = require('tor-request')
+tr.TorControlPort.password = 'brandsek@2022'
 
 // const proxies_file = 'proxies.conf'
 const sources_file = __dirname + "/sources.conf";
